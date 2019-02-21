@@ -55,7 +55,7 @@ def on_message(client, userdata, msg):
         packet.append(ZabbixMetric(setting["zabbix_host"], setting["zabbix_key"], value))
         logger.debug(str(packet))
         result = sender.send(packet)
-        logger.debug("zabbix send result {0}".format(result))
+        logger.debug("zabbix send result {0}".format(str(result)))
 
 
 def parse_value(value):
