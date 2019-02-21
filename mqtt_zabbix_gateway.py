@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import paho.mqtt.client as mqtt
-from pyzabbix import ZabbixMetric, ZabbixSender
 
 from logging import getLogger, basicConfig, StreamHandler, Formatter, DEBUG, INFO, WARN
 handler_format = Formatter('%(asctime)s %(name)s %(levelname)s %(message)s')
@@ -51,11 +50,17 @@ def on_message(client, userdata, msg):
         return
 
     if (setting["type"] == "zabbix"):
+        from pyzabbix import ZabbixMetric, ZabbixSender
+        # zabbix
+        zbx_host = config["server"]["zabbix"]["host"]
+        zbx_port = config["server"]["zabbix"]["port"]
+        sender = ZabbixSender(zbx_host, zbx_port)
         packet = []
         packet.append(ZabbixMetric(setting["zabbix_host"], setting["zabbix_key"], value))
         logger.debug(str(packet))
         result = sender.send(packet)
-        logger.debug("zabbix send result {0}".format(str(result)))
+        print(result)
+        logger.info("zabbix send result {0}".format(str(result)))
 
 
 def parse_value(value):
@@ -101,11 +106,6 @@ def get_config():
 if __name__ == '__main__':
 
     config = get_config()
-
-    # zabbix
-    zbx_host = config["server"]["zabbix"]["host"]
-    zbx_port = config["server"]["zabbix"]["port"]
-    sender = ZabbixSender(zbx_host, zbx_port)
 
     # mqtt
     mq_host = config["server"]["mqtt"]["host"]

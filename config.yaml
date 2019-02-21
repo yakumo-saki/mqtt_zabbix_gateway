@@ -4,7 +4,7 @@ server:
     port: 1883
   zabbix:
     host: '10.1.0.10'
-    port: 10050
+    port: 10051
 convert:
   - topic: '/outer1/temp'
     type: 'zabbix'
