@@ -16,7 +16,6 @@ logger.addHandler(stream_handler)
 
 config = None
 
-mq_topic = None
 convert = None
 
 sender = None
@@ -111,7 +110,6 @@ if __name__ == '__main__':
     # mqtt
     mq_host = config["server"]["mqtt"]["host"]
     mq_port = config["server"]["mqtt"]["port"]
-    mq_topic = config["server"]["mqtt"]["topic"]
 
     convert = config["convert"]
     logger.debug(convert)

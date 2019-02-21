@@ -2,7 +2,6 @@ server:
   mqtt:
     host: '10.1.0.21'
     port: 1883
-    topic: '#'
   zabbix:
     host: '10.1.0.10'
     port: 10050
