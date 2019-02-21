@@ -1,7 +1,7 @@
 import unittest
 import sys
 sys.path.append("../")
-from mqtt_zabbix_gateway import *
+from mqtt_zabbix_gateway import parse_value
 
 
 class TestMain(unittest.TestCase):
