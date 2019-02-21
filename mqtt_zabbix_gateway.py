@@ -36,7 +36,7 @@ def on_message(client, userdata, msg):
 
     setting = get_convert_setting(msg.topic)
 
-    logger.debug(setting)
+    # logger.debug(setting)
 
     if setting == None:
         logger.warn("[BUG] No matching convert setting: topic = {0} value = {1}".format(
