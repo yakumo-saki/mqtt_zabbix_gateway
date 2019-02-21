@@ -33,7 +33,7 @@ def on_connect(client, userdata, flags, respons_code):
 
 def on_message(client, userdata, msg):
     payload = str(msg.payload)
-    logger.debug(msg.topic + ' ' + str(payload))
+    logger.debug("received {0} {1}".format(msg.topic,str(payload)))
 
     setting = get_convert_setting(msg.topic)
 
@@ -53,8 +53,8 @@ def on_message(client, userdata, msg):
 
     if (setting["type"] == "zabbix"):
         packet = []
-        packet.append(ZabbixMetric(
-            setting["zabbix_host"], setting["zabbix_key"], value))
+        packet.append(ZabbixMetric(setting["zabbix_host"], setting["zabbix_key"], value))
+        logger.debug(str(packet))
         result = sender.send(packet)
         logger.debug("zabbix send result {0}".format(result))
 
@@ -68,12 +68,14 @@ def parse_value(value):
     try:
         return int(v)
     except ValueError:
-        logger.debug("Not int " + v)
+        # logger.debug("Not int " + v)
+        pass
 
     try:
         return float(v)
     except ValueError:
-        logger.debug("NOT FLOAT " + v)
+        #logger.debug("NOT FLOAT " + v)
+        pass
 
     return v
 
@@ -81,7 +83,7 @@ def parse_value(value):
 def get_convert_setting(topic):
     for conv in convert:
         if topic == conv["topic"]:
-            logger.debug("match")
+            # logger.debug("match")
             return conv
 
     return None
