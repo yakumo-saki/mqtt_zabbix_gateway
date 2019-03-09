@@ -3,20 +3,24 @@
 import paho.mqtt.client as mqtt
 
 from logging import getLogger, basicConfig, StreamHandler, Formatter, DEBUG, INFO, WARN
+from logging import config as loggerConfig
+
+import pprint
+
 handler_format = Formatter('%(asctime)s %(name)s %(levelname)s %(message)s')
 
 #basicConfig(level=DEBUG)
 stream_handler = StreamHandler()
 stream_handler.setFormatter(handler_format)
 
+loggerConfig.fileConfig('logging.conf', disable_existing_loggers=False)
 logger = getLogger(__name__)
-logger.setLevel(DEBUG)
-logger.addHandler(stream_handler)
+#logger.setLevel(DEBUG)
+#logger.addHandler(stream_handler)
 
+#
 config = None
-
 convert = None
-
 sender = None
 
 
@@ -49,6 +53,12 @@ def on_message(client, userdata, msg):
             msg.topic, payload, value))
         return
 
+    if (setting["type"] == "log"):
+        out_logger = getLogger(setting["logger"])
+        out_logger.info("[LOG] topic = {0} value = {1} parsed_value={2}".format(
+            msg.topic, payload, value))
+        return
+
     if (setting["type"] == "zabbix"):
         from pyzabbix import ZabbixMetric, ZabbixSender
         # zabbix
@@ -61,6 +71,7 @@ def on_message(client, userdata, msg):
         result = sender.send(packet)
         print(result)
         logger.info("zabbix send result {0}".format(str(result)))
+        return
 
 
 def parse_value(value):
@@ -93,19 +104,40 @@ def get_convert_setting(topic):
     return None
 
 
-def get_config():
+def get_config(filename):
     # get config
     import yaml
-    with open('config.yaml', 'r') as yaml_file:
+    with open(filename, 'r') as yaml_file:
         # ファイルの中身を辞書として取得する
         conf = yaml.load(yaml_file)
 
     return conf
 
 
+def load_logger_config():
+    for conv in convert:
+        if "log" == conv["type"]:
+            if "config" in conv:
+                logger.info("loading logger config: %s", conv["config"])
+                logger_dict = get_config(conv["config"])
+                pprint.pprint(logger_dict)
+                loggerConfig.dictConfig(logger_dict)
+                # loggerConfig.fileConfig(conv["config"], None, False)
+            else:
+                logger.debug("No config. skip loading logger config")
+
+
+
+def load_logger_config_old():
+    for conv in convert:
+        if "log" == conv["type"]:
+            logger.info("loading logger config: %s", conv["config"])
+            loggerConfig.fileConfig(conv["config"], None, False)
+
+
 if __name__ == '__main__':
 
-    config = get_config()
+    config = get_config('config.yaml')
 
     # mqtt
     mq_host = config["server"]["mqtt"]["host"]
@@ -113,6 +145,8 @@ if __name__ == '__main__':
 
     convert = config["convert"]
     logger.debug(convert)
+
+    load_logger_config()
 
     client = mqtt.Client(protocol=mqtt.MQTTv311)
 

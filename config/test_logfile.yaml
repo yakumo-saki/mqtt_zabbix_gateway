@@ -1,0 +1,26 @@
+version: 1
+disable_existing_loggers: False
+formatters:
+  testlogfile_formatter:
+    format: "[TESTLOGFILE] %(asctime)s[%(module)s:%(lineno)s][%(name)s][%(levelname)s] %(message)s"
+
+handlers:
+  testlogfile_handler1:
+    level: DEBUG
+    formatter: simpleFormatter
+    class: "logging.handlers.RotatingFileHandler"
+    filename: "./log/testlogfile.log"
+    maxBytes: 10485760
+    backupCount: 0
+  testlogfile_handler2:
+    class: logging.StreamHandler
+    level: DEBUG
+    formatter: testlogfile_formatter
+    stream: ext://sys.stdout
+
+loggers:
+  testlogfile:
+    level: DEBUG
+    handlers: [testlogfile_handler1, testlogfile_handler2]
+    propagate: False
+

@@ -22,4 +22,13 @@ convert:
     type: 'dump'
   - topic: '/test/test_log'
     type: 'log'
-    path: './log/test.log'
+    config: './config/test_logstdout.yaml'
+    logger: testlog
+  - topic: '/test/test_log2'
+    type: 'log'
+    logger: testlog
+  - topic: '/test/test_logfile'
+    type: 'log'
+    logger: testlogfile
+    config: './config/test_logfile.yaml'
+

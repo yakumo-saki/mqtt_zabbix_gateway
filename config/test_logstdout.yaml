@@ -1,0 +1,25 @@
+version: 1
+disable_existing_loggers: False
+
+formatters:
+  testlog_formatter:
+    format: "[TESTLOG] %(asctime)s[%(module)s:%(lineno)s][%(name)s][%(levelname)s] %(message)s"
+
+handlers:
+  testloghandler:
+    class: 'logging.StreamHandler'
+    formatter: testlog_formatter
+    level: DEBUG
+    stream: ext://sys.stdout
+
+  consoleHandler:
+    class: logging.StreamHandler
+    level: DEBUG
+    formatter: testlog_formatter
+    stream: ext://sys.stdout
+
+loggers:
+  testlog:
+    level: DEBUG
+    handlers: [testloghandler]
+    propagate: False
