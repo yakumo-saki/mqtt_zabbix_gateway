@@ -5,7 +5,7 @@ import paho.mqtt.client as mqtt
 from logging import getLogger, basicConfig, StreamHandler, Formatter, DEBUG, INFO, WARN
 from logging import config as loggerConfig
 
-import pprint
+from pprint import pprint
 
 handler_format = Formatter('%(asctime)s %(name)s %(levelname)s %(message)s')
 
@@ -60,17 +60,16 @@ def on_message(client, userdata, msg):
         return
 
     if (setting["type"] == "zabbix"):
-        from pyzabbix import ZabbixMetric, ZabbixSender
+        from ZabbixSender import ZabbixSender, ZabbixPacket
         # zabbix
         zbx_host = config["server"]["zabbix"]["host"]
         zbx_port = config["server"]["zabbix"]["port"]
-        sender = ZabbixSender(zbx_host, zbx_port)
-        packet = []
-        packet.append(ZabbixMetric(setting["zabbix_host"], setting["zabbix_key"], value))
+        server = ZabbixSender(zbx_host, zbx_port)
+        packet = ZabbixPacket()
+        packet.add(setting["zabbix_host"], setting["zabbix_key"], value)
         logger.debug(str(packet))
-        result = sender.send(packet)
-        print(result)
-        logger.info("zabbix send result {0}".format(str(result)))
+        server.send(packet)
+        logger.info("zabbix send result {0}".format(str(server.status)))
         return
 
 
@@ -120,12 +119,10 @@ def load_logger_config():
             if "config" in conv:
                 logger.info("loading logger config: %s", conv["config"])
                 logger_dict = get_config(conv["config"])
-                pprint.pprint(logger_dict)
+                # pprint(logger_dict)
                 loggerConfig.dictConfig(logger_dict)
-                # loggerConfig.fileConfig(conv["config"], None, False)
             else:
                 logger.debug("No config. skip loading logger config")
-
 
 
 def load_logger_config_old():

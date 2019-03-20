@@ -6,15 +6,15 @@ server:
     host: '10.1.0.10'
     port: 10051
 convert:
-  - topic: '/outer1/temp'
+  - topic: '/outer11/temp'
     type: 'zabbix'
     zabbix_host: 'ENVIRONMENT'
     zabbix_key: 'outside.temparature'
-  - topic: '/outer1/humi'
+  - topic: '/outer11/humi'
     type: 'zabbix'
     zabbix_host: 'ENVIRONMENT'
     zabbix_key: 'outside.humidity'
-  - topic: '/outer1/pres'
+  - topic: '/outer11/pres'
     type: 'zabbix'
     zabbix_host: 'ENVIRONMENT'
     zabbix_key: 'outside.pressure'

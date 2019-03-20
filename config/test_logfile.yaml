@@ -7,7 +7,7 @@ formatters:
 handlers:
   testlogfile_handler1:
     level: DEBUG
-    formatter: simpleFormatter
+    formatter: testlogfile_formatter
     class: "logging.handlers.RotatingFileHandler"
     filename: "./log/testlogfile.log"
     maxBytes: 10485760
