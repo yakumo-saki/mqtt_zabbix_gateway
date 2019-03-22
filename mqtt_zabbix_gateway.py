@@ -73,14 +73,11 @@ def on_message(client, userdata, msg):
             #sender.add(setting["zabbix_host"], setting["zabbix_key"], value)
             import subprocess
             try:
-                exec = '{0} -v -z "{1}" -s "{2}" -k "{3}" -o "{4}"'.format(
-                    config["server"]["zabbix"]["sender"],
+                res = subprocess.check_call(config["server"]["zabbix"]["sender"],
                     config["server"]["zabbix"]["host"],
                     setting["zabbix_host"],
                     setting["zabbix_key"],
                     value)
-                print("EXEC = " + exec)
-                res = subprocess.check_call(exec)
                 print("PROCESS END " + res)
             except:
                 print("Error.")
