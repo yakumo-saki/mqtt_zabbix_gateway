@@ -3,6 +3,7 @@ server:
     host: '10.1.0.21'
     port: 1883
   zabbix:
+    sender: /usr/bin/zabbix_sender
     host: '10.1.0.10'
     port: 10051
 convert:

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import paho.mqtt.client as mqtt
+from ZabbixSender import ZabbixPacket, ZabbixSender
 
 from logging import getLogger, basicConfig, StreamHandler, Formatter, DEBUG, INFO, WARN
 from logging import config as loggerConfig
@@ -27,8 +28,15 @@ sender = None
 def on_connect(client, userdata, flags, respons_code):
     logger.info('connect status {0}'.format(respons_code))
 
+    topics = []
     for conv in convert:
         topic = conv["topic"]
+        if (topic in topics):
+            pass
+        else:
+            topics.append(topic)
+
+    for topic in topics:
         logger.info("subscribe topic " + topic)
         client.subscribe(topic)
 
@@ -37,40 +45,128 @@ def on_message(client, userdata, msg):
     payload = str(msg.payload)
     logger.debug("received {0} {1}".format(msg.topic,str(payload)))
 
-    setting = get_convert_setting(msg.topic)
+    settings = get_convert_settings(msg.topic)
 
-    # logger.debug(setting)
-
-    if setting == None:
+    if settings.count == 0:
         logger.warn("[BUG] No matching convert setting: topic = {0} value = {1}".format(
             msg.topic, payload))
         return
 
     value = parse_value(payload)
+    #zabbix_packets = ZabbixPacket()
+    #sender = MyZabbixSender()
 
-    if (setting["type"] == "dump"):
-        logger.info("[DUMP] topic = {0} value = {1} parsed_value={2}".format(
-            msg.topic, payload, value))
-        return
+    for setting in settings:
+        pprint(setting)
 
-    if (setting["type"] == "log"):
-        out_logger = getLogger(setting["logger"])
-        out_logger.info("[LOG] topic = {0} value = {1} parsed_value={2}".format(
-            msg.topic, payload, value))
-        return
+        if (setting["type"] == "dump"):
+            logger.info("[DUMP] topic = {0} value = {1} parsed_value={2}".format(
+                msg.topic, payload, value))
+            continue
+        elif (setting["type"] == "log"):
+            out_logger = getLogger(setting["logger"])
+            out_logger.info("[LOG] topic = {0} value = {1} parsed_value={2}".format(
+                msg.topic, payload, value))
+            continue
+        elif (setting["type"] == "zabbix"):
+            #zabbix_packets.add(setting["zabbix_host"], setting["zabbix_key"], value)
+            #sender.add(setting["zabbix_host"], setting["zabbix_key"], value)
+            import subprocess
+            try:
+                exec = '{0} -v -z "{1}" -s "{2}" -k "{3}" -o "{4}"'.format(
+                    config["server"]["zabbix"]["sender"],
+                    config["server"]["zabbix"]["host"],
+                    setting["zabbix_host"],
+                    setting["zabbix_key"],
+                    value)
+                print("EXEC = " + exec)
+                res = subprocess.check_call(exec)
+                print("PROCESS END " + res)
+            except:
+                print("Error.")
 
-    if (setting["type"] == "zabbix"):
-        from ZabbixSender import ZabbixSender, ZabbixPacket
-        # zabbix
-        zbx_host = config["server"]["zabbix"]["host"]
-        zbx_port = config["server"]["zabbix"]["port"]
-        server = ZabbixSender(zbx_host, zbx_port)
-        packet = ZabbixPacket()
-        packet.add(setting["zabbix_host"], setting["zabbix_key"], value)
-        logger.debug(str(packet))
-        server.send(packet)
-        logger.info("zabbix send result {0}".format(str(server.status)))
-        return
+            continue
+        else:
+            logger.warn("unknown type => " + setting["type"])
+            continue
+
+    sender.send()
+
+    #zabbix_send(zabbix_packets)
+
+
+def zabbix_send(packets):
+    zbx_host = config["server"]["zabbix"]["host"]
+    zbx_port = config["server"]["zabbix"]["port"]
+
+    logger.debug("zabbix send")
+    server = ZabbixSender(zbx_host, zbx_port)
+
+    print(str(packets))
+    logger.debug("before zabbix send")
+    server.send(packets)
+    logger.debug("after zabbix send")
+
+    logger.info("zabbix send result {0}".format(str(server.status)))
+    pprint(server.status)
+    return
+
+
+def zabbix_sender(packet):
+    import socket
+    import json
+    import re
+    import time
+
+    zbx_host = config["server"]["zabbix"]["host"]
+    zbx_port = config["server"]["zabbix"]["port"]
+
+    print(zbx_host, zbx_port)
+
+    print("packet")
+    pprint(str(packet))
+
+    header = b"ZBXD" + b'\x01'
+    data = str(packet).encode('utf-8')
+    length = "{0:x}".format(len(packet)).ljust(8,'0')
+    try:
+        s = socket.socket()
+        s.connect((zbx_host, int(zbx_port)))
+        print("CONN OK")
+
+        data = header + str(length).encode() + data
+        pprint(data)
+
+        s.send(data)
+        print("SEND OK")
+
+        time.sleep(0.5)
+        raw_ret = s.recv(2048)
+        pprint(raw_ret)
+
+        status = raw_ret.decode('utf-8')
+        #status = s.recv(1024).decode('utf-8')
+
+        print("ZBX RECV OK " + status)
+        pprint(status)
+
+        s.close()
+        print("sock closed")
+
+        re_status = re.compile('(\{.*\})')
+
+        pprint("RE compile")
+
+        status = re_status.search(status).groups()[0]
+
+        pprint("re exec")
+
+        logger.info("sent done")
+        logger.info(status)
+
+    except Exception as e:  # TODO: Horrible! Rewrite immediately.
+        logger.error(e)
+        raise("Can't connect zabbix server")
 
 
 def parse_value(value):
@@ -94,13 +190,13 @@ def parse_value(value):
     return v
 
 
-def get_convert_setting(topic):
+def get_convert_settings(topic):
+    settings = []
     for conv in convert:
         if topic == conv["topic"]:
-            # logger.debug("match")
-            return conv
+            settings.append(conv)
 
-    return None
+    return settings
 
 
 def get_config(filename):
