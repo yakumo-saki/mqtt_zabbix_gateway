@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
+# coding=utf-8
 
 import paho.mqtt.client as mqtt
-from ZabbixSender import ZabbixPacket, ZabbixSender
 
 from logging import getLogger, basicConfig, StreamHandler, Formatter, DEBUG, INFO, WARN
 from logging import config as loggerConfig
@@ -10,14 +10,11 @@ from pprint import pprint
 
 handler_format = Formatter('%(asctime)s %(name)s %(levelname)s %(message)s')
 
-#basicConfig(level=DEBUG)
 stream_handler = StreamHandler()
 stream_handler.setFormatter(handler_format)
 
 loggerConfig.fileConfig('logging.conf', disable_existing_loggers=False)
 logger = getLogger(__name__)
-#logger.setLevel(DEBUG)
-#logger.addHandler(stream_handler)
 
 #
 config = None
@@ -53,12 +50,8 @@ def on_message(client, userdata, msg):
         return
 
     value = parse_value(payload)
-    #zabbix_packets = ZabbixPacket()
-    #sender = MyZabbixSender()
 
     for setting in settings:
-        pprint(setting)
-
         if (setting["type"] == "dump"):
             logger.info("[DUMP] topic = {0} value = {1} parsed_value={2}".format(
                 msg.topic, payload, value))
@@ -69,101 +62,33 @@ def on_message(client, userdata, msg):
                 msg.topic, payload, value))
             continue
         elif (setting["type"] == "zabbix"):
-            #zabbix_packets.add(setting["zabbix_host"], setting["zabbix_key"], value)
-            #sender.add(setting["zabbix_host"], setting["zabbix_key"], value)
             import subprocess
             try:
-                res = subprocess.check_call(config["server"]["zabbix"]["sender"],
-                    config["server"]["zabbix"]["host"],
+                cmd = []
+                cmd.append(config["server"]["zabbix"]["sender"])
+                cmd.append("-v")
+                cmd.append("-z")
+                cmd.append(config["server"]["zabbix"]["host"])
+                cmd.append("-s")
+                cmd.append(setting["zabbix_host"])
+                cmd.append("-k")
+                cmd.append(setting["zabbix_key"])
+                cmd.append("-o")
+                cmd.append(str(value))
+
+                res = subprocess.run(cmd, stdout=subprocess.PIPE)
+                logger.info("{0}:{1} value={2} sent. rc={3}".format(
                     setting["zabbix_host"],
                     setting["zabbix_key"],
-                    value)
-                print("PROCESS END " + res)
-            except:
+                    value, res.returncode))
+            except Exception as e:
                 print("Error.")
+                pprint(e)
 
             continue
         else:
             logger.warn("unknown type => " + setting["type"])
             continue
-
-    sender.send()
-
-    #zabbix_send(zabbix_packets)
-
-
-def zabbix_send(packets):
-    zbx_host = config["server"]["zabbix"]["host"]
-    zbx_port = config["server"]["zabbix"]["port"]
-
-    logger.debug("zabbix send")
-    server = ZabbixSender(zbx_host, zbx_port)
-
-    print(str(packets))
-    logger.debug("before zabbix send")
-    server.send(packets)
-    logger.debug("after zabbix send")
-
-    logger.info("zabbix send result {0}".format(str(server.status)))
-    pprint(server.status)
-    return
-
-
-def zabbix_sender(packet):
-    import socket
-    import json
-    import re
-    import time
-
-    zbx_host = config["server"]["zabbix"]["host"]
-    zbx_port = config["server"]["zabbix"]["port"]
-
-    print(zbx_host, zbx_port)
-
-    print("packet")
-    pprint(str(packet))
-
-    header = b"ZBXD" + b'\x01'
-    data = str(packet).encode('utf-8')
-    length = "{0:x}".format(len(packet)).ljust(8,'0')
-    try:
-        s = socket.socket()
-        s.connect((zbx_host, int(zbx_port)))
-        print("CONN OK")
-
-        data = header + str(length).encode() + data
-        pprint(data)
-
-        s.send(data)
-        print("SEND OK")
-
-        time.sleep(0.5)
-        raw_ret = s.recv(2048)
-        pprint(raw_ret)
-
-        status = raw_ret.decode('utf-8')
-        #status = s.recv(1024).decode('utf-8')
-
-        print("ZBX RECV OK " + status)
-        pprint(status)
-
-        s.close()
-        print("sock closed")
-
-        re_status = re.compile('(\{.*\})')
-
-        pprint("RE compile")
-
-        status = re_status.search(status).groups()[0]
-
-        pprint("re exec")
-
-        logger.info("sent done")
-        logger.info(status)
-
-    except Exception as e:  # TODO: Horrible! Rewrite immediately.
-        logger.error(e)
-        raise("Can't connect zabbix server")
 
 
 def parse_value(value):

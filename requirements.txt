@@ -1,2 +1,1 @@
-ZabbixSender
 paho-mqtt
